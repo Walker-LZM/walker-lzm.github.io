@@ -2,7 +2,7 @@
 # 📝 Publications 
 
 - **Lu Z**, Nie F, Ma L, et al. Simplifying scalable subspace clustering and its multi-view extension by anchor-to-sample kernel[J]. IEEE Transactions on Image Processing, 2025. [[pdf](https://github.com/Walker-LZM/walker-lzm.github.io/blob/main/publications/MV3SC_TIP2025.pdf)]
-- **Lu Z**, Yu Y, Ma L, et al. Capturing individuality and commonality between anchor graphs for multi-view clustering[C]. International Joint Conference on Artificial Intelligence, 2025.
+- **Lu Z**, Yu Y, Ma L, et al. [Capturing individuality and commonality between anchor graphs for multi-view clustering](https://doi.org/10.24963/ijcai.2025/652)[C]. International Joint Conference on Artificial Intelligence, 2025. [[pdf](https://github.com/Walker-LZM/walker-lzm.github.io/blob/main/publications/CICAG_IJCAI2025.pdf)]
 - **Lu Z**, Nie F, Wang R, et al. A differentiable perspective for multi-view spectral clustering with flexible extension[J]. IEEE Transactions on Pattern Analysis and Machine Intelligence, 2023.
 - **Lu Z**, Wang S, Liu G, et al. Robust weighted co-clustering with global and local discrimination[J]. Pattern Recognition, 2023.
 - **Lu Z**, Liu G, Wang S. Sparse neighbor constrained co-clustering via category consistency learning[J]. Knowledge-Based Systems, 2020.
