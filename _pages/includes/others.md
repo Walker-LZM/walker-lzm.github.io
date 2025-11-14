@@ -11,7 +11,7 @@ Null
 - IEEE Transactions on Neural Networks and Learning Systems (T-NNLS)
 - IEEE Transactions on Multimedia (T-MM)
 
-## &ensp;Conference Reviewer
+## &ensp; Conference Reviewer
 - International Conference on Machine Learning (ICML)
 - International Conference on Learning Representations (ICLR)
 - Annual Conference on Neural Information Processing Systems (NeurIPS, 2025 Top Reviewer)
