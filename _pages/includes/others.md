@@ -10,6 +10,8 @@ Null
 - IEEE Transactions on Image Processing (T-IP)
 - IEEE Transactions on Neural Networks and Learning Systems (T-NNLS)
 - IEEE Transactions on Multimedia (T-MM)
+- Pattern Recognition (PR)
+- Knowledge-Based Systems (KBS)
 
 ## &ensp; Conference Reviewer
 - International Conference on Machine Learning (ICML)
