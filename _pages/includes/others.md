@@ -17,9 +17,9 @@
 - Annual Conference on Neural Information Processing Systems (NeurIPS, 2025 Top Reviewer)
 - Annual AAAI Conference on Artificial Intelligence (AAAI)
 - International Joint Conference on Artificial Intelligence (IJCAI)
-- ACMSIGKDD International Conference on Knowledge Discovery and Data Mining (KDD)
+- ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD)
 - IEEE Conference on Computer Vision and Pattern Recognition (CVPR)
-- ACMInternational Conference on Multimedia (MM)
+- ACM International Conference on Multimedia (MM)
 
 
 
