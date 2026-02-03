@@ -3,7 +3,11 @@ title = "Services"
 description = "Professional services and community involvement."
 
 [[items]]
-title = "Reviewer"
-subtitle = "Journal Name"
-date = "2024"
-content = "Reviewed papers for..."
+title = "Journal Reviewer"
+subtitle = ""
+date = ""
+content = """
+IEEE Transactions on Pattern Analysis and Machine Intelligence (T-PAMI)
+IEEE Transactions on Knowledge and Data Engineering (T-KDE)
+IEEE Transactions on Image Processing (T-IP)
+"""

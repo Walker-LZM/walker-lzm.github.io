@@ -3,9 +3,12 @@ title = "About"
 
 [profile]
 research_interests = [
-  "Computational Physics",
-  "Mathematical Principles",
-  "Proof of Theorems"
+  "Representation Learning",
+  "Multi-view Learning",
+  "Graph Learning",
+  "Federated Learning",
+  "Clustering",
+  "Anomaly Detection"
 ]
 
 [[sections]]
