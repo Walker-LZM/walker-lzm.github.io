@@ -40,7 +40,7 @@ export default function CardPage({ config, embedded = false }: { config: CardPag
                             <p className={`${embedded ? "text-sm" : "text-base"} text-accent font-medium mb-3`}>{item.subtitle}</p>
                         )}
                         {item.content && (
-                            <p className={`${embedded ? "text-sm" : "text-base"} text-neutral-600 dark:text-neutral-500 leading-relaxed`}>
+                            <p className={`${embedded ? "text-sm" : "text-base"} text-neutral-600 dark:text-neutral-500 leading-relaxed whitespace-pre-line`}>
                                 {item.content}
                             </p>
                         )}
