@@ -21,6 +21,173 @@ interface PublicationsListProps {
     embedded?: boolean;
 }
 
+// Badge styling rules (case-insensitive detection; canonical labels come from bibtexParser)
+//
+// Visual intent (from strongest to weakest):
+//  - strong  : Awards / Highly Cited / Hot (most prominent)
+//  - medium  : Top-tier A-like rankings (noticeable but weaker than awards)
+//  - soft    : Mid-tier ranks (e.g., B) and top partitions (Q1/Z1)
+//  - muted   : Second-tier partitions (Q2/Z2)
+//  - default : Everything else (neutral grey)
+type BadgeTone = 'award' | 'rank' | 'partition' | 'other';
+type BadgeVariant = 'strong' | 'medium' | 'soft' | 'muted' | 'default';
+
+function badgeTone(label: string): BadgeTone {
+    const u = label.trim().toUpperCase();
+
+    // Awards / special highlights
+    if (/(BEST|AWARD|OUTSTANDING|HONORABLE|HIGHLY\s*CITED|\bHOT\b)/i.test(label)) return 'award';
+
+    // Partitions
+    if (/^(JCR\s+Q[1-4]|CITESCORE\s+Q[1-4]|CAS\s+Z[1-4])$/.test(u)) return 'partition';
+
+    // Rankings
+    if (
+        /^CCF-[ABC]$/.test(u) ||
+        /^CAA-(A\+|A|B|C)$/.test(u) ||
+        /^CAAI-[ABC]$/.test(u) ||
+        /^CORE\s+(A\*|A|B|C)$/.test(u) ||
+        /^TH-[AB]$/.test(u)
+    ) {
+        return 'rank';
+    }
+
+    return 'other';
+}
+
+function badgeVariant(label: string): BadgeVariant {
+    const u = label.trim().toUpperCase();
+
+    // Strong highlight: awards / outstanding / honorable / highly cited / hot
+    if (badgeTone(label) === 'award') return 'strong';
+
+    // ----- Partitions: JCR / CiteScore (Q1..Q4), CAS (Z1..Z4) -----
+    let m: RegExpMatchArray | null;
+
+    m = u.match(/^JCR\s+Q([1-4])$/);
+    if (m) {
+        const q = Number(m[1]);
+        if (q === 1) return 'soft';
+        if (q === 2) return 'muted';
+        // Q3 and Q4 look the same
+        return 'default';
+    }
+
+    m = u.match(/^CITESCORE\s+Q([1-4])$/);
+    if (m) {
+        const q = Number(m[1]);
+        if (q === 1) return 'soft';
+        if (q === 2) return 'muted';
+        // Q3 and Q4 look the same
+        return 'default';
+    }
+
+    m = u.match(/^CAS\s+Z([1-4])$/);
+    if (m) {
+        const z = Number(m[1]);
+        if (z === 1) return 'soft';
+        if (z === 2) return 'muted';
+        // Z3 and Z4 look the same
+        return 'default';
+    }
+
+    // ----- Rankings with A/B/C (and variants like A+, A*) -----
+    // CCF-A/B/C
+    m = u.match(/^CCF-([ABC])$/);
+    if (m) {
+        if (m[1] === 'A') return 'medium';
+        // B should be noticeably weaker than A
+        if (m[1] === 'B') return 'muted';
+        return 'default'; // C
+    }
+
+    // CAA-A+/A/B/C
+    m = u.match(/^CAA-(A\+|A|B|C)$/);
+    if (m) {
+        const r = m[1];
+        // A+ slightly stronger than A, but still weaker than awards
+        if (r === 'A+') return 'medium';
+        if (r === 'A') return 'medium';
+        if (r === 'B') return 'muted';
+        return 'default';
+    }
+
+    // CAAI-A/B/C
+    m = u.match(/^CAAI-([ABC])$/);
+    if (m) {
+        if (m[1] === 'A') return 'medium';
+        if (m[1] === 'B') return 'muted';
+        return 'default';
+    }
+
+    // CORE A*/A/B/C
+    m = u.match(/^CORE\s+(A\*|A|B|C)$/);
+    if (m) {
+        const r = m[1];
+        if (r === 'A*') return 'medium';
+        if (r === 'A') return 'medium';
+        if (r === 'B') return 'muted';
+        return 'default';
+    }
+
+    // TH-A/B
+    m = u.match(/^TH-([AB])$/);
+    if (m) {
+        if (m[1] === 'A') return 'medium';
+        return 'muted';
+    }
+
+    // For other labels (Oral/Poster/Spotlight/etc.), keep neutral by default.
+    return 'default';
+}
+
+function badgeClass(label: string): string {
+    const tone = badgeTone(label);
+    const variant = badgeVariant(label);
+
+    // Neutral grey for: non-highlighted, low tiers, and general tags
+    const neutral = 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700';
+
+    if (tone === 'award') {
+        // Most prominent (stronger than ranks/partitions)
+        return 'bg-warning text-white border-warning dark:bg-warning dark:border-warning';
+    }
+
+    if (tone === 'rank') {
+        // Ranking: use INFO color family (blue-ish), with A/B/C intensity
+        switch (variant) {
+            case 'medium':
+                // A / A+ / A*  (noticeable, but weaker than awards)
+                return 'bg-info/15 text-info border-info/45 dark:bg-info/20 dark:border-info/55 font-semibold';
+            case 'muted':
+                // B (weaker than A)
+                // Slight fill to improve legibility, still clearly weaker than A
+                return 'bg-info/5 text-info/90 border-info/25 dark:bg-info/10 dark:text-info/90 dark:border-info/30';
+            default:
+                // C
+                return neutral;
+        }
+    }
+
+    if (tone === 'partition') {
+        // Partitions: use SUCCESS color family (green-ish), with Q/Z intensity
+        switch (variant) {
+            case 'soft':
+                // Q1 / Z1
+                return 'bg-success/15 text-success border-success/40 dark:bg-success/20 dark:border-success/50';
+            case 'muted':
+                // Q2 / Z2
+                // Slight fill to improve legibility, still weaker than Q1/Z1
+                return 'bg-success/5 text-success/90 border-success/25 dark:bg-success/10 dark:text-success/90 dark:border-success/30';
+            default:
+                // Q3/Q4, Z3/Z4
+                return neutral;
+        }
+    }
+
+    return neutral;
+}
+
 export default function PublicationsList({ config, publications, embedded = false }: PublicationsListProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
@@ -47,7 +214,8 @@ export default function PublicationsList({ config, publications, embedded = fals
                 pub.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 pub.authors.some(author => author.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 pub.journal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                pub.conference?.toLowerCase().includes(searchQuery.toLowerCase());
+                pub.conference?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                pub.badges?.some(b => b.toLowerCase().includes(searchQuery.toLowerCase()));
 
             const matchesYear = selectedYear === 'all' || pub.year === selectedYear;
             const matchesType = selectedType === 'all' || pub.type === selectedType;
@@ -286,6 +454,19 @@ export default function PublicationsList({ config, publications, embedded = fals
                                                 BibTeX
                                             </button>
                                         )}
+
+                                        {/* Custom badges (from publications.bib badge/badges fields). Only show on the full Publications page. */}
+                                        {!embedded && pub.badges?.map((badge) => (
+                                            <span
+                                                key={`${pub.id}::${badge}`}
+                                                className={cn(
+                                                    'inline-flex items-center rounded-md border px-3 py-1 text-xs font-medium select-none whitespace-nowrap',
+                                                    badgeClass(badge)
+                                                )}
+                                            >
+                                                {badge}
+                                            </span>
+                                        ))}
                                     </div>
 
                                     <AnimatePresence>
