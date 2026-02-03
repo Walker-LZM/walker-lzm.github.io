@@ -42,6 +42,10 @@ export function parseBibTeX(bibtexContent: string): Publication[] {
   return entries.map((entry: { entryType: string; citationKey: string; entryTags: Record<string, string> }, index: number) => {
     const tags = entry.entryTags;
 
+    // Parse badges (custom field: badge/badges; case-insensitive)
+    const rawBadges = getTagCaseInsensitive(tags, 'badges') || getTagCaseInsensitive(tags, 'badge') || '';
+    const badges = parseBadges(rawBadges);
+
     // Parse authors
     const authors = parseAuthors(tags.author || '', authorName);
 
@@ -89,8 +93,11 @@ export function parseBibTeX(bibtexContent: string): Publication[] {
       selected,
       preview,
 
+      // Custom badges shown on the Publications page (rendered next to action buttons)
+      badges: badges.length ? badges : undefined,
+
       // Store original BibTeX (excluding custom fields)
-      bibtex: reconstructBibTeX(entry, ['selected', 'preview', 'description', 'keywords', 'code']),
+      bibtex: reconstructBibTeX(entry, ['selected', 'preview', 'description', 'keywords', 'code', 'badge', 'badges']),
     };
 
     // Clean up undefined fields
@@ -205,6 +212,108 @@ function cleanBibTeXString(str?: string): string {
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
   return cleaned;
+}
+
+/** Case-insensitive getter for BibTeX tags (bibtex-parse-js preserves original key casing). */
+function getTagCaseInsensitive(tags: Record<string, string>, key: string): string | undefined {
+  const target = key.toLowerCase();
+  for (const [k, v] of Object.entries(tags)) {
+    if (k.toLowerCase() === target) return v;
+  }
+  return undefined;
+}
+
+/**
+ * Parse a badge/badges field into a normalized badge list.
+ *
+ * Accepts comma/semicolon/pipe separated values, ignores case when detecting known rankings,
+ * but returns canonical display strings (e.g., "ccf-a" -> "CCF-A", "jcr-q1" -> "JCR Q1").
+ */
+function parseBadges(raw: string): string[] {
+  if (!raw) return [];
+
+  const tokens = raw
+    .replace(/[{}]/g, '')
+    .split(/[;,|]/g)
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const token of tokens) {
+    const normalized = normalizeBadgeToken(token);
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(normalized);
+  }
+
+  return out;
+}
+
+function normalizeBadgeToken(token: string): string | undefined {
+  const raw = token.trim();
+  if (!raw) return undefined;
+
+  // Normalize whitespace/hyphens for matching
+  const compact = raw
+    .replace(/[_–—]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const upper = compact.toUpperCase();
+
+  // -------- Rankings (case-insensitive detection, canonical output) --------
+  let m: RegExpMatchArray | null;
+
+  // CCF-A/B/C
+  m = upper.match(/^CCF[\s-]*([ABC])$/);
+  if (m) return `CCF-${m[1]}`;
+
+  // CAA-A+/A/B/C
+  m = upper.match(/^CAA[\s-]*(A\+|A|B|C)$/);
+  if (m) return `CAA-${m[1]}`;
+
+  // CAAI-A/B/C
+  m = upper.match(/^CAAI[\s-]*([ABC])$/);
+  if (m) return `CAAI-${m[1]}`;
+
+  // CORE A*/A/B/C
+  m = upper.match(/^CORE[\s-]*(A\*|A|B|C)$/);
+  if (m) return `CORE ${m[1]}`;
+
+  // TH-A/B
+  m = upper.match(/^TH[\s-]*([AB])$/);
+  if (m) return `TH-${m[1]}`;
+
+  // CAS Z1/Z2/Z3/Z4
+  m = upper.match(/^CAS[\s-]*Z([1-4])$/);
+  if (m) return `CAS Z${m[1]}`;
+
+  // JCR Q1/Q2/Q3/Q4  (also accepts JCR-Q1)
+  m = upper.match(/^JCR[\s-]*Q([1-4])$/);
+  if (m) return `JCR Q${m[1]}`;
+
+  // CiteScore Q1/Q2/Q3/Q4 (also accepts CITESCORE-Q1)
+  m = upper.match(/^CITESCORE[\s-]*Q([1-4])$/);
+  if (m) return `CiteScore Q${m[1]}`;
+
+  // -------- Awards / special labels --------
+  // Canonicalize common ones; otherwise keep original as-is (trimmed)
+  if (/(^|\b)ORAL(\b|$)/i.test(compact)) return 'Oral';
+  if (/(^|\b)POSTER(\b|$)/i.test(compact)) return 'Poster';
+  if (/(^|\b)SPOTLIGHT(\b|$)/i.test(compact)) return 'Spotlight';
+  if (/BEST\s*STUDENT\s*PAPER/i.test(compact)) return 'Best Student Paper';
+  if (/BEST\s*PAPER/i.test(compact)) return 'Best Paper';
+  if (/OUTSTANDING\s*PAPER/i.test(compact)) return 'Outstanding Paper';
+  if (/HONORABLE\s*MENTION/i.test(compact)) return 'Honorable Mention';
+  if (/TEST[\s-]*OF[\s-]*TIME\s*AWARD/i.test(compact)) return 'Test-of-Time Award';
+  if (/HIGHLY\s*CITED/i.test(compact)) return 'Highly Cited';
+  if (/(^|\b)HOT(\b|$)/i.test(compact)) return 'Hot';
+
+  // Keep user-provided label (trimmed) for anything else
+  return compact;
 }
 
 function detectResearchArea(title: string, keywords: string[]): ResearchArea {
