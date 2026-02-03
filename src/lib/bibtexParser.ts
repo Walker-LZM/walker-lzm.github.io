@@ -66,6 +66,14 @@ export function parseBibTeX(bibtexContent: string): Publication[] {
     // Parse preview field (remove braces if present)
     const preview = tags.preview?.replace(/[{}]/g, '');
 
+    // Parse PDF URL (custom fields: pdf/paper/file; case-insensitive)
+    const rawPdf =
+      getTagCaseInsensitive(tags, 'pdf') ||
+      getTagCaseInsensitive(tags, 'paper') ||
+      getTagCaseInsensitive(tags, 'file') ||
+      '';
+    const pdfUrl = normalizePdfUrl(rawPdf);
+
     // Create publication object
     const publication: Publication = {
       id: entry.citationKey || tags.id || `pub-${Date.now()}-${index}`,
@@ -88,6 +96,7 @@ export function parseBibTeX(bibtexContent: string): Publication[] {
       doi: tags.doi,
       url: tags.url,
       code: tags.code,
+      pdfUrl: pdfUrl || undefined,
       abstract: cleanBibTeXString(tags.abstract),
       description: cleanBibTeXString(tags.description || tags.note),
       selected,
@@ -97,7 +106,7 @@ export function parseBibTeX(bibtexContent: string): Publication[] {
       badges: badges.length ? badges : undefined,
 
       // Store original BibTeX (excluding custom fields)
-      bibtex: reconstructBibTeX(entry, ['selected', 'preview', 'description', 'keywords', 'code', 'badge', 'badges']),
+      bibtex: reconstructBibTeX(entry, ['selected', 'preview', 'description', 'keywords', 'code', 'badge', 'badges', 'pdf', 'paper', 'file']),
     };
 
     // Clean up undefined fields
@@ -221,6 +230,53 @@ function getTagCaseInsensitive(tags: Record<string, string>, key: string): strin
     if (k.toLowerCase() === target) return v;
   }
   return undefined;
+}
+
+/**
+ * Normalize a PDF link from BibTeX fields like `pdf`, `paper`, or `file`.
+ *
+ * Supports:
+ *  - Site-relative URLs: /assets/papers/xxx.pdf
+ *  - Relative paths: assets/papers/xxx.pdf (auto-prepends '/')
+ *  - External URLs: https://...
+ *  - Zotero-style file field: path/to/xxx.pdf:application/pdf (keeps path part)
+ *  - Multiple entries separated by ';' (picks the first PDF-like entry)
+ */
+function normalizePdfUrl(raw: string): string | undefined {
+  if (!raw) return undefined;
+
+  let v = raw
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/[{}]/g, '')
+    .trim();
+  if (!v) return undefined;
+
+  // If multiple entries exist (common in Zotero export), pick a PDF-like one.
+  const parts = v.split(';').map(p => p.trim()).filter(Boolean);
+  const chosen = parts.find(p => /\.pdf(\b|:)/i.test(p)) || parts[0] || '';
+  v = chosen.trim();
+
+  // Strip Zotero-style suffix like ":application/pdf" (keep the path before ':')
+  if (v.includes(':')) {
+    const before = v.split(':')[0].trim();
+    // If it looks like a path/URL to a PDF, keep it.
+    if (/\.pdf$/i.test(before) || before.includes('/')) v = before;
+  }
+
+  // External URLs: keep as-is
+  if (/^https?:\/\//i.test(v)) return v;
+
+  // Normalize to web path
+  v = v.replace(/\\/g, '/');
+
+  // file:///... -> /...
+  v = v.replace(/^file:\/*/i, '/');
+
+  // Ensure site-relative leading slash
+  if (!v.startsWith('/')) v = `/${v}`;
+
+  return v;
 }
 
 /**
