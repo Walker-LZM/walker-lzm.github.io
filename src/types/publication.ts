@@ -45,6 +45,8 @@ export interface Publication {
   summary?: string;
   researchArea: ResearchArea;
   description?: string;
+  /** Extra badges/tags shown alongside action buttons on the Publications page (e.g., CCF-A, JCR Q1, Best Paper). */
+  badges?: string[];
 }
 
 export type PublicationType =
