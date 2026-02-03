@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
@@ -9,7 +9,10 @@ import {
     CalendarIcon,
     BookOpenIcon,
     ClipboardDocumentIcon,
-    DocumentTextIcon
+    DocumentTextIcon,
+    LinkIcon,
+    CodeBracketIcon,
+    DocumentIcon
 } from '@heroicons/react/24/outline';
 import { Publication } from '@/types/publication';
 import { PublicationPageConfig } from '@/types/page';
@@ -186,6 +189,78 @@ function badgeClass(label: string): string {
     }
 
     return neutral;
+}
+
+function HoverTooltip({ label }: { label: string }) {
+    return (
+        <span
+            className={cn(
+                'pointer-events-none absolute z-20 left-1/2 -translate-x-1/2',
+                // Show above the icon button
+                '-top-9',
+                'whitespace-nowrap rounded-md px-2 py-1 text-xs',
+                'bg-neutral-900 text-white shadow-sm',
+                'opacity-0 translate-y-1',
+                'group-hover:opacity-100 group-hover:translate-y-0',
+                'group-focus-visible:opacity-100 group-focus-visible:translate-y-0',
+                'transition-all duration-150'
+            )}
+        >
+            {label}
+        </span>
+    );
+}
+
+function ActionIconLink({ href, label, children }: { href: string; label: string; children: ReactNode }) {
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            title={label}
+            className={cn(
+                'group relative inline-flex h-7 w-7 items-center justify-center rounded-md',
+                'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
+                'hover:bg-accent hover:text-white transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-neutral-900'
+            )}
+        >
+            {children}
+            <HoverTooltip label={label} />
+        </a>
+    );
+}
+
+function ActionIconButton({
+    onClick,
+    label,
+    isActive,
+    children
+}: {
+    onClick: () => void;
+    label: string;
+    isActive?: boolean;
+    children: ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-label={label}
+            title={label}
+            className={cn(
+                'group relative inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-neutral-900',
+                isActive
+                    ? 'bg-accent text-white'
+                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-accent hover:text-white'
+            )}
+        >
+            {children}
+            <HoverTooltip label={label} />
+        </button>
+    );
 }
 
 export default function PublicationsList({ config, publications, embedded = false }: PublicationsListProps) {
@@ -407,52 +482,37 @@ export default function PublicationsList({ config, publications, embedded = fals
 
                                     <div className="flex flex-wrap gap-2 mt-auto">
                                         {pub.doi && (
-                                            <a
-                                                href={`https://doi.org/${pub.doi}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-accent hover:text-white transition-colors"
-                                            >
-                                                DOI
-                                            </a>
+                                            <ActionIconLink href={`https://doi.org/${pub.doi}`} label="DOI">
+                                                <LinkIcon className="h-4 w-4" />
+                                            </ActionIconLink>
                                         )}
                                         {pub.code && (
-                                            <a
-                                                href={pub.code}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-accent hover:text-white transition-colors"
-                                            >
-                                                Code
-                                            </a>
+                                            <ActionIconLink href={pub.code} label="Code">
+                                                <CodeBracketIcon className="h-4 w-4" />
+                                            </ActionIconLink>
+                                        )}
+                                        {!embedded && pub.pdfUrl && (
+                                            <ActionIconLink href={pub.pdfUrl} label="Paper">
+                                                <DocumentIcon className="h-4 w-4" />
+                                            </ActionIconLink>
                                         )}
                                         {pub.abstract && (
-                                            <button
+                                            <ActionIconButton
                                                 onClick={() => setExpandedAbstractId(expandedAbstractId === pub.id ? null : pub.id)}
-                                                className={cn(
-                                                    "inline-flex items-center px-3 py-1 rounded-md text-xs font-medium transition-colors",
-                                                    expandedAbstractId === pub.id
-                                                        ? "bg-accent text-white"
-                                                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-accent hover:text-white"
-                                                )}
+                                                label="Abstract"
+                                                isActive={expandedAbstractId === pub.id}
                                             >
-                                                <DocumentTextIcon className="h-3 w-3 mr-1.5" />
-                                                Abstract
-                                            </button>
+                                                <DocumentTextIcon className="h-4 w-4" />
+                                            </ActionIconButton>
                                         )}
                                         {pub.bibtex && (
-                                            <button
+                                            <ActionIconButton
                                                 onClick={() => setExpandedBibtexId(expandedBibtexId === pub.id ? null : pub.id)}
-                                                className={cn(
-                                                    "inline-flex items-center px-3 py-1 rounded-md text-xs font-medium transition-colors",
-                                                    expandedBibtexId === pub.id
-                                                        ? "bg-accent text-white"
-                                                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-accent hover:text-white"
-                                                )}
+                                                label="BibTeX"
+                                                isActive={expandedBibtexId === pub.id}
                                             >
-                                                <BookOpenIcon className="h-3 w-3 mr-1.5" />
-                                                BibTeX
-                                            </button>
+                                                <BookOpenIcon className="h-4 w-4" />
+                                            </ActionIconButton>
                                         )}
 
                                         {/* Custom badges (from publications.bib badge/badges fields). Only show on the full Publications page. */}
