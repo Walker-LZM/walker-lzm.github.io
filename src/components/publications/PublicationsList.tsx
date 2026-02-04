@@ -12,7 +12,8 @@ import {
     DocumentTextIcon,
     LinkIcon,
     CodeBracketIcon,
-    DocumentIcon
+    DocumentIcon,
+    UserIcon
 } from '@heroicons/react/24/outline';
 import { Publication } from '@/types/publication';
 import { PublicationPageConfig } from '@/types/page';
@@ -268,6 +269,7 @@ export default function PublicationsList({ config, publications, embedded = fals
     const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
     const [selectedType, setSelectedType] = useState<string | 'all'>('all');
     const [showFilters, setShowFilters] = useState(false);
+    const [sortMode, setSortMode] = useState<'year' | 'contribution'>('year');
     const [expandedBibtexId, setExpandedBibtexId] = useState<string | null>(null);
     const [expandedAbstractId, setExpandedAbstractId] = useState<string | null>(null);
 
@@ -298,6 +300,85 @@ export default function PublicationsList({ config, publications, embedded = fals
             return matchesSearch && matchesYear && matchesType;
         });
     }, [publications, searchQuery, selectedYear, selectedType]);
+
+    function getMyContributionRank(pub: Publication): number {
+        // Smaller means higher priority.
+        // Priority: 1st author > co-first (#) > corresponding (*) > 2nd author > 3rd author > ... > not found
+        const idx = pub.authors.findIndex(a => a.isHighlighted);
+        if (idx < 0) return 99;
+
+        const me = pub.authors[idx];
+
+        if (idx === 0) return 0;
+        if (me.isCoAuthor) return 1;
+        if (me.isCorresponding) return 2;
+        // Author position order: 2nd author > 3rd author > ...
+        // idx: 1 -> 3, 2 -> 4, 3 -> 5, ...
+        return 3 + Math.max(0, idx - 1);
+    }
+
+    function getMonthValue(month?: string | number): number {
+        if (!month) return 0;
+        if (typeof month === 'number') return month;
+        const m = month.trim().toLowerCase();
+        const monthMapping: Record<string, number> = {
+            jan: 1,
+            january: 1,
+            feb: 2,
+            february: 2,
+            mar: 3,
+            march: 3,
+            apr: 4,
+            april: 4,
+            may: 5,
+            jun: 6,
+            june: 6,
+            jul: 7,
+            july: 7,
+            aug: 8,
+            august: 8,
+            sep: 9,
+            sept: 9,
+            september: 9,
+            oct: 10,
+            october: 10,
+            nov: 11,
+            november: 11,
+            dec: 12,
+            december: 12
+        };
+        if (monthMapping[m]) return monthMapping[m];
+        const n = parseInt(m, 10);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    const displayedPublications = useMemo(() => {
+        const arr = filteredPublications.slice();
+        arr.sort((a, b) => {
+            const ra = getMyContributionRank(a);
+            const rb = getMyContributionRank(b);
+
+            if (sortMode === 'contribution') {
+                // Primary: authorship contribution
+                if (ra !== rb) return ra - rb;
+
+                // Tie-breakers: year desc, month desc, title
+                if (b.year !== a.year) return b.year - a.year;
+                const mm = getMonthValue(b.month) - getMonthValue(a.month);
+                if (mm !== 0) return mm;
+                return a.title.localeCompare(b.title);
+            }
+
+            // Default: year (new → old), then authorship within same year
+            if (b.year !== a.year) return b.year - a.year;
+            if (ra !== rb) return ra - rb;
+
+            const mm = getMonthValue(b.month) - getMonthValue(a.month);
+            if (mm !== 0) return mm;
+            return a.title.localeCompare(b.title);
+        });
+        return arr;
+    }, [filteredPublications, sortMode]);
 
     return (
         <motion.div
@@ -340,6 +421,30 @@ export default function PublicationsList({ config, publications, embedded = fals
                         <FunnelIcon className="h-5 w-5 mr-2" />
                         Filters
                     </button>
+
+                    {!embedded && (
+                        <button
+                            type="button"
+                            onClick={() => setSortMode(sortMode === 'year' ? 'contribution' : 'year')}
+                            className={cn(
+                                "relative group flex items-center justify-center w-10 h-10 rounded-lg border transition-all duration-200",
+                                sortMode === 'contribution'
+                                    ? 'bg-accent text-white border-accent'
+                                    : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 hover:border-accent hover:text-accent'
+                            )}
+                            aria-label={
+                                sortMode === 'year'
+                                    ? 'Sort: Year → Authorship (click to switch)'
+                                    : 'Sort: Authorship → Year (click to switch)'
+                            }
+                            title={sortMode === 'year' ? 'Year → Authorship' : 'Authorship → Year'}
+                        >
+                            {sortMode === 'year' ? <CalendarIcon className="h-5 w-5" /> : <UserIcon className="h-5 w-5" />}
+                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-neutral-700/30 dark:border-neutral-300/60 bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity shadow-sm">
+                                {sortMode === 'year' ? 'Year → Authorship' : 'Authorship → Year'}
+                            </span>
+                        </button>
+                    )}
                 </div>
 
                 <AnimatePresence>
@@ -426,12 +531,12 @@ export default function PublicationsList({ config, publications, embedded = fals
 
             {/* Publications Grid */}
             <div className="space-y-6">
-                {filteredPublications.length === 0 ? (
+                {displayedPublications.length === 0 ? (
                     <div className="text-center py-12 text-neutral-500">
                         No publications found matching your criteria.
                     </div>
                 ) : (
-                    filteredPublications.map((pub, index) => (
+                    displayedPublications.map((pub, index) => (
                         <motion.div
                             key={pub.id}
                             initial={{ opacity: 0, y: 20 }}
