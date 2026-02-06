@@ -35,8 +35,8 @@ export default function News({ items, title = 'News' }: NewsProps) {
             <div className={expanded ? 'max-h-48 overflow-y-auto pr-2' : ''}>
                 <div className="space-y-3">
                     {visibleItems.map((item, index) => (
-                        <div key={index} className="flex items-start space-x-3">
-                            <span className="text-xs text-neutral-500 mt-1 w-16 flex-shrink-0">{item.date}</span>
+                        <div key={index} className="flex items-baselines space-x-3">
+                            <span className="text-xs text-neutral-500 mt-1 w-18 flex-shrink-0 whitespace-nowrap tabular-nums">{item.date}</span>
                             <p className="text-sm text-neutral-700 dark:text-neutral-300">{item.content}</p>
                         </div>
                     ))}
@@ -47,7 +47,7 @@ export default function News({ items, title = 'News' }: NewsProps) {
                 <button
                     type="button"
                     onClick={() => setExpanded((v) => !v)}
-                    className="mt-3 text-sm text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+                    className="mt-3 text-xs text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
                 >
                     {expanded ? 'Show less' : 'Show more'}
                 </button>
